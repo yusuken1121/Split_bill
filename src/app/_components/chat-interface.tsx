@@ -8,7 +8,6 @@ import { createChatMessage } from "@/lib/chat-utils";
 import type { Message } from "@/core/domain/message.entity";
 
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";

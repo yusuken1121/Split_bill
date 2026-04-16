@@ -16,7 +16,6 @@ import {
   SIDEBAR_CONFIG,
   mainSidebar,
   manageSidebar,
-  adminSidebar,
   footerSidebar,
 } from "@/constants/menuKeys";
 import { cn } from "@/lib/utils";
@@ -136,7 +135,7 @@ export function AppSidebar() {
       <SidebarContent className="px-2 py-4">
         <SidebarGroup>
           <SidebarGroupLabel className="px-2 text-xs font-semibold text-muted-foreground/70 uppercase tracking-wider mb-2">
-            Create
+            Main
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu className="space-y-1">
@@ -156,16 +155,6 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarGroup className="mt-4">
-          <SidebarGroupLabel className="px-2 text-xs font-semibold text-muted-foreground/70 uppercase tracking-wider mb-2">
-            Admin
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu className="space-y-1">
-              {renderSidebarItems(adminSidebar)}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
       </SidebarContent>
 
       <SidebarFooter className="p-4 border-t border-sidebar-border/50">

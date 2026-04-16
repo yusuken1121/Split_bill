@@ -109,3 +109,4 @@ npm run dev
 - Use Cases must only depend on Interfaces (`ports`), never on concrete classes.
 
 3. No SDKs in Core: The `core` folder must remain framework-agnostic. No `next/*` or `google-generative-ai` imports allowed here.
+
