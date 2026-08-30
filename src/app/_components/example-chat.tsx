@@ -1,40 +1,37 @@
 /**
  * Example Chat Component
  *
- * This demonstrates how to use the Server Actions from a Client Component.
- * This is for reference only - showing the complete flow from UI to Core.
+ * Demonstrates the React Query → API wrapper → Route Handler → Use Case flow.
  */
 
 "use client";
 
 import { useState } from "react";
-import { sendMessageAction } from "@/app/_actions/chat";
+import { useSendMessageStream } from "@/lib/api/queries/useChat";
 import { createChatMessage } from "@/lib/chat-utils";
 import type { Message } from "@/core/domain/message.entity";
 
 export function ExampleChatComponent() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
   const [streamingResponse, setStreamingResponse] = useState("");
+  const { mutateAsync: sendMessage, isPending: isLoading } =
+    useSendMessageStream();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!input.trim()) return;
 
-    setIsLoading(true);
     setStreamingResponse("");
 
-    // Create user message
     const userMessage = createChatMessage("user", input);
     const updatedMessages = [...messages, userMessage];
     setMessages(updatedMessages);
     setInput("");
 
     try {
-      // Call the Server Action
-      const stream = await sendMessageAction({
+      const response = await sendMessage({
         messages: updatedMessages,
         options: {
           temperature: 0.7,
@@ -42,8 +39,12 @@ export function ExampleChatComponent() {
         },
       });
 
-      // Read the stream
-      const reader = stream.getReader();
+      if (!response.body) {
+        throw new Error("Response body is not readable");
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
       let fullResponse = "";
 
       while (true) {
@@ -51,20 +52,16 @@ export function ExampleChatComponent() {
 
         if (done) break;
 
-        // Value is already a string from our ReadableStream<string>
-        fullResponse += value;
+        fullResponse += decoder.decode(value, { stream: true });
         setStreamingResponse(fullResponse);
       }
 
-      // Add assistant message to history
       const assistantMessage = createChatMessage("assistant", fullResponse);
       setMessages([...updatedMessages, assistantMessage]);
       setStreamingResponse("");
     } catch (error) {
       console.error("Error sending message:", error);
       alert("Failed to send message. Please try again.");
-    } finally {
-      setIsLoading(false);
     }
   };
 

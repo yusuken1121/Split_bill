@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { Pencil, Trash2 } from "lucide-react";
 import type { ReportLineItem } from "@/lib/calculations";
-import { deleteExpenseAction, updateExpenseAction } from "./actions";
+import {
+  useDeleteExpense,
+  useUpdateExpense,
+} from "@/lib/api/queries/useExpenses";
 import {
   Dialog,
   DialogContent,
@@ -33,7 +35,6 @@ interface ExpenseRowActionsProps {
 }
 
 export function ExpenseRowActions({ item }: ExpenseRowActionsProps) {
-  const router = useRouter();
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [name, setName] = useState(item.name);
@@ -41,9 +42,10 @@ export function ExpenseRowActions({ item }: ExpenseRowActionsProps) {
   const [price, setPrice] = useState(String(item.price));
   const [whose, setWhose] = useState<Whose>(item.whose ?? "both");
   const [whoPaid, setWhoPaid] = useState<Payer>(item.whoPaid ?? "Y");
-  const [isSaving, setIsSaving] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { mutateAsync: updateExpense, isPending: isSaving } = useUpdateExpense();
+  const { mutateAsync: deleteExpense, isPending: isDeleting } =
+    useDeleteExpense();
 
   useEffect(() => {
     if (!editOpen) {
@@ -64,10 +66,9 @@ export function ExpenseRowActions({ item }: ExpenseRowActionsProps) {
       return;
     }
 
-    setIsSaving(true);
     setError(null);
     try {
-      await updateExpenseAction({
+      await updateExpense({
         id: item.id,
         name: name.trim(),
         date,
@@ -76,26 +77,19 @@ export function ExpenseRowActions({ item }: ExpenseRowActionsProps) {
         whoPaid,
       });
       setEditOpen(false);
-      router.refresh();
     } catch (saveError) {
       console.error(saveError);
       setError(saveError instanceof Error ? saveError.message : "Failed to save.");
-    } finally {
-      setIsSaving(false);
     }
   };
 
   const handleDelete = async () => {
-    setIsDeleting(true);
     try {
-      await deleteExpenseAction({ id: item.id });
+      await deleteExpense(item.id);
       setDeleteOpen(false);
-      router.refresh();
     } catch (deleteError) {
       console.error(deleteError);
       alert(deleteError instanceof Error ? deleteError.message : "Failed to delete.");
-    } finally {
-      setIsDeleting(false);
     }
   };
 

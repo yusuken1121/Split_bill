@@ -1,37 +1,35 @@
 "use client";
+
 import { useState } from "react";
-import { ExpenseItem } from "@/lib/notion";
-import { updateShoppingAction } from "./actions";
+import {
+  useCheckoutExpense,
+  useExpenses,
+} from "@/lib/api/queries/useExpenses";
+import type { ExpenseItem } from "@/lib/notion";
 
-export function ToDoList({ initialItems }: { initialItems: ExpenseItem[] }) {
-  const [items, setItems] = useState(
-    initialItems.filter((item) => item.status === "Not bought")
-  );
+export function ToDoList() {
+  const { data: expenses = [], isLoading, isError, error } = useExpenses();
+  const items = expenses.filter((item) => item.status === "Not bought");
   const [selectedItem, setSelectedItem] = useState<ExpenseItem | null>(null);
-
-  // モーダル用ステート
   const [price, setPrice] = useState<string>("");
   const [whoPaid, setWhoPaid] = useState<"Y" | "E">("Y");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { mutateAsync: checkoutExpense, isPending: isSubmitting } =
+    useCheckoutExpense();
 
-  // 送信処理
   const handleUpdate = async () => {
     if (!selectedItem || !price) return;
-    setIsSubmitting(true);
 
     try {
-      const res = await updateShoppingAction(selectedItem.id, Number(price), whoPaid);
-      if (res.success) {
-        // 更新成功時にローカルのリストから除外
-        setItems((prev) => prev.filter((item) => item.id !== selectedItem.id));
-        setSelectedItem(null);
-        setPrice("");
-      }
+      await checkoutExpense({
+        id: selectedItem.id,
+        price: Number(price),
+        whoPaid,
+      });
+      setSelectedItem(null);
+      setPrice("");
     } catch (err) {
       console.error(err);
-      alert("通信エラーが発生しました");
-    } finally {
-      setIsSubmitting(false);
+      alert(err instanceof Error ? err.message : "通信エラーが発生しました");
     }
   };
 
@@ -40,32 +38,41 @@ export function ToDoList({ initialItems }: { initialItems: ExpenseItem[] }) {
       <h2 className="text-xl font-extrabold mb-4 flex items-center justify-center gap-2">
         <span className="text-2xl">📝</span> Shopping ToDo
       </h2>
-      <ul className="space-y-3">
-        {items.map((item) => (
-          <li
-            key={item.id}
-            className="flex justify-between items-center p-4 bg-card border border-border rounded-2xl shadow-sm text-card-foreground"
-          >
-            <div className="flex flex-col">
-              <span className="font-bold text-lg">{item.name}</span>
-              <span className="text-xs text-muted-foreground">{item.date}</span>
-            </div>
-            <button
-              onClick={() => setSelectedItem(item)}
-              className="bg-primary hover:bg-primary/90 text-primary-foreground px-5 py-2 rounded-xl text-sm font-bold transition-all shadow-sm active:scale-95 whitespace-nowrap"
+      {isLoading ? (
+        <p className="text-muted-foreground text-center py-10 bg-secondary/30 rounded-2xl border border-dashed border-border text-sm">
+          Loading pending items...
+        </p>
+      ) : isError ? (
+        <p className="text-destructive text-center py-10 bg-secondary/30 rounded-2xl border border-dashed border-border text-sm">
+          {error.message}
+        </p>
+      ) : (
+        <ul className="space-y-3">
+          {items.map((item) => (
+            <li
+              key={item.id}
+              className="flex justify-between items-center p-4 bg-card border border-border rounded-2xl shadow-sm text-card-foreground"
             >
-              Checkout
-            </button>
-          </li>
-        ))}
-        {items.length === 0 && (
-          <p className="text-muted-foreground text-center py-10 bg-secondary/30 rounded-2xl border border-dashed border-border text-sm">
-            You have no pending items to buy.
-          </p>
-        )}
-      </ul>
+              <div className="flex flex-col">
+                <span className="font-bold text-lg">{item.name}</span>
+                <span className="text-xs text-muted-foreground">{item.date}</span>
+              </div>
+              <button
+                onClick={() => setSelectedItem(item)}
+                className="bg-primary hover:bg-primary/90 text-primary-foreground px-5 py-2 rounded-xl text-sm font-bold transition-all shadow-sm active:scale-95 whitespace-nowrap"
+              >
+                Checkout
+              </button>
+            </li>
+          ))}
+          {items.length === 0 && (
+            <p className="text-muted-foreground text-center py-10 bg-secondary/30 rounded-2xl border border-dashed border-border text-sm">
+              You have no pending items to buy.
+            </p>
+          )}
+        </ul>
+      )}
 
-      {/* モーダル (ポップアップ) UI */}
       {selectedItem && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 transition-all">
           <div className="bg-card text-card-foreground rounded-3xl p-6 md:p-8 max-w-sm w-full shadow-2xl border border-border">

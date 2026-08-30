@@ -3,7 +3,7 @@
 import * as React from "react";
 import { Send, Bot, User, Loader2, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { sendMessageAction } from "@/app/_actions/chat";
+import { useSendMessageStream } from "@/lib/api/queries/useChat";
 import { createChatMessage } from "@/lib/chat-utils";
 import type { Message } from "@/core/domain/message.entity";
 
@@ -15,10 +15,10 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 
 export function ChatInterface() {
-  // State
   const [messages, setMessages] = React.useState<Message[]>([]);
   const [inputValue, setInputValue] = React.useState("");
-  const [isLoading, setIsLoading] = React.useState(false);
+  const { mutateAsync: sendMessage, isPending: isLoading } =
+    useSendMessageStream();
   const scrollAreaRef = React.useRef<HTMLDivElement>(null);
   const bottomRef = React.useRef<HTMLDivElement>(null);
 
@@ -36,29 +36,29 @@ export function ChatInterface() {
 
     const userContent = inputValue.trim();
     setInputValue("");
-    setIsLoading(true);
 
-    // 1. Create and add user message immediately
     const userMessage = createChatMessage("user", userContent);
     const newHistory = [...messages, userMessage];
     setMessages(newHistory);
 
     try {
-      // 2. Create placeholder for assistant message
       const assistantMessage = createChatMessage("assistant", "");
       setMessages((prev) => [...prev, assistantMessage]);
 
-      // 3. Call Server Action
-      const stream = await sendMessageAction({
+      const response = await sendMessage({
         messages: newHistory,
         options: {
-          model: "gemini-2.0-flash-exp", // Using the fast experimental model
+          model: "gemini-2.0-flash-exp",
           temperature: 0.7,
         },
       });
 
-      // 4. Read the stream
-      const reader = stream.getReader();
+      if (!response.body) {
+        throw new Error("Response body is not readable");
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
       let fullContent = "";
 
       while (true) {
@@ -66,13 +66,11 @@ export function ChatInterface() {
 
         if (done) break;
 
-        // Append new chunk
-        fullContent += value;
+        const chunk = decoder.decode(value, { stream: true });
+        fullContent += chunk;
 
-        // Update the last message (assistant) with accumulated content
         setMessages((prev) => {
           const lastMsg = prev[prev.length - 1];
-          // Only update if it's the assistant message we just created
           if (lastMsg.id === assistantMessage.id) {
             return [...prev.slice(0, -1), { ...lastMsg, content: fullContent }];
           }
@@ -81,13 +79,10 @@ export function ChatInterface() {
       }
     } catch (error) {
       console.error("Failed to send message:", error);
-      // You could add a toast notification here
       setMessages((prev) => [
         ...prev,
         createChatMessage("system", "Error: Failed to get response from AI."),
       ]);
-    } finally {
-      setIsLoading(false);
     }
   };
 
