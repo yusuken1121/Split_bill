@@ -1,6 +1,8 @@
 import { ToDoList } from "@/features/shopping/ToDoList";
 import { getExpenses } from "@/lib/notion";
 
+export const dynamic = "force-dynamic";
+
 export default async function PendingPage() {
   const expenses = await getExpenses();
 

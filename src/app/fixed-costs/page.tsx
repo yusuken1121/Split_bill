@@ -1,6 +1,8 @@
 import { getExpenses } from "@/lib/notion";
 import { FixedCostsForm } from "@/features/fixed-costs";
 
+export const dynamic = "force-dynamic";
+
 export default async function FixedCostsPage() {
   const expenses = await getExpenses();
 

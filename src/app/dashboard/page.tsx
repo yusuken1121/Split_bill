@@ -2,6 +2,8 @@ import { ExpenseDashboard } from "@/features/dashboard/ExpenseDashboard";
 import { getExpenses } from "@/lib/notion";
 import { calculateDashboardData } from "@/lib/calculations";
 
+export const dynamic = "force-dynamic";
+
 export default async function DashboardPage() {
   const expenses = await getExpenses();
   const { settlement, monthlyTotals, itemsByMonth } = calculateDashboardData(expenses);
