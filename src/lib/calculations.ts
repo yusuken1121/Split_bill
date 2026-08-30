@@ -15,6 +15,8 @@ export interface ReportLineItem {
   date: string;
   name: string;
   price: number;
+  whose: ExpenseItem["whose"];
+  whoPaid: ExpenseItem["whoPaid"];
 }
 
 export interface DashboardData {
@@ -62,7 +64,14 @@ export function calculateDashboardData(items: ExpenseItem[]): DashboardData {
       if (!itemsByMonth[monthKey]) {
         itemsByMonth[monthKey] = [];
       }
-      itemsByMonth[monthKey].push({ id, date, name, price });
+      itemsByMonth[monthKey].push({
+        id,
+        date,
+        name,
+        price,
+        whose,
+        whoPaid,
+      });
     });
 
   for (const monthKey of Object.keys(itemsByMonth)) {

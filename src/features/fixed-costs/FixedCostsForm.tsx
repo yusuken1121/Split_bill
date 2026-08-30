@@ -2,11 +2,13 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Droplets, Flame, Home, Wifi } from "lucide-react";
+import { Droplets, ExternalLink, Flame, Home, Wifi, Zap } from "lucide-react";
 import type { ExpenseItem } from "@/lib/notion";
 import {
+  FIXED_COST_DEFAULTS,
   FIXED_COST_KINDS,
   KIND_LABELS,
+  KIND_URLS,
   MONTH_NAMES,
   MONTH_SHORT,
   RENT_PRICE,
@@ -18,15 +20,12 @@ import {
   coverageLabel,
   isBimonthlyKind,
   isMonthRegistered,
+  lastDayOfCoverageMonth,
   lastRegistration,
   monthKeyFromCoverage,
   nextBimonthlyDue,
 } from "./parse";
 import { saveFixedCostAction } from "./actions";
-
-function todayKey() {
-  return new Date().toISOString().split("T")[0];
-}
 
 function currentMonthKey() {
   const now = new Date();
@@ -43,6 +42,7 @@ function formatCoverage(coverage: { year: number; month: number }) {
 
 const KIND_ICONS: Record<FixedCostKind, typeof Home> = {
   rent: Home,
+  electric: Zap,
   wifi: Wifi,
   gas: Flame,
   water: Droplets,
@@ -56,8 +56,8 @@ export function FixedCostsForm({ expenses }: FixedCostsFormProps) {
   const router = useRouter();
   const registered = useMemo(() => collectRegisteredMonths(expenses), [expenses]);
   const [coverageMonth, setCoverageMonth] = useState(currentMonthKey);
-  const [date, setDate] = useState(todayKey);
   const [prices, setPrices] = useState<Record<Exclude<FixedCostKind, "rent">, string>>({
+    electric: "",
     wifi: "",
     gas: "",
     water: "",
@@ -87,7 +87,6 @@ export function FixedCostsForm({ expenses }: FixedCostsFormProps) {
       await saveFixedCostAction({
         kind,
         coverageMonth,
-        date,
         price,
       });
       showToast(`Saved ${coverageLabel(kind, coverage.month)}`);
@@ -139,18 +138,34 @@ export function FixedCostsForm({ expenses }: FixedCostsFormProps) {
               className="w-full bg-background border border-border rounded-xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-ring text-foreground font-medium"
             />
           </label>
-          <label className="block space-y-2">
-            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+          <div className="space-y-2">
+            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
               Payment date
-            </span>
-            <input
-              type="date"
-              aria-label="Payment date"
-              value={date}
-              onChange={(event) => setDate(event.target.value)}
-              className="w-full bg-background border border-border rounded-xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-ring text-foreground font-medium"
-            />
-          </label>
+            </p>
+            <p className="w-full bg-muted/50 border border-border rounded-xl py-3 px-4 font-medium text-foreground">
+              {lastDayOfCoverageMonth(coverage)}
+              <span className="ml-2 text-xs text-muted-foreground">(last day of month)</span>
+            </p>
+          </div>
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          {(
+            [
+              ["Whose", FIXED_COST_DEFAULTS.whose],
+              ["Status", FIXED_COST_DEFAULTS.status],
+              ["Who paid", FIXED_COST_DEFAULTS.whoPaid],
+            ] as const
+          ).map(([label, value]) => (
+            <div
+              key={label}
+              className="rounded-xl border border-border bg-muted/50 px-3 py-2 text-center"
+            >
+              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                {label}
+              </p>
+              <p className="text-sm font-extrabold text-foreground">{value}</p>
+            </div>
+          ))}
         </div>
         {errorMessage ? (
           <p className="text-sm text-destructive font-medium">{errorMessage}</p>
@@ -186,6 +201,17 @@ export function FixedCostsForm({ expenses }: FixedCostsFormProps) {
                   {coverageLabel(kind, coverage.month)}
                 </span>
               </div>
+              {KIND_URLS[kind] ? (
+                <a
+                  href={KIND_URLS[kind]}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-start gap-1.5 text-xs font-medium text-primary hover:underline break-all"
+                >
+                  <ExternalLink className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                  {KIND_URLS[kind]}
+                </a>
+              ) : null}
 
               <div className="flex flex-wrap gap-1.5">
                 {MONTH_SHORT.map((label, index) => {

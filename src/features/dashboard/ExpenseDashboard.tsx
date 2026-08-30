@@ -25,6 +25,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { ExpenseRowActions } from "./ExpenseRowActions";
 import {
   Select,
   SelectContent,
@@ -242,12 +243,13 @@ export function ExpenseDashboard({
                 <TableHead>Date</TableHead>
                 <TableHead>Item</TableHead>
                 <TableHead className="text-right">Amount</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {monthItems.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
                     No Done expenses this month.
                   </TableCell>
                 </TableRow>
@@ -257,13 +259,16 @@ export function ExpenseDashboard({
                     <TableCell>{item.date}</TableCell>
                     <TableCell className="font-medium">{item.name}</TableCell>
                     <TableCell className="text-right">{formatYen(item.price)}</TableCell>
+                    <TableCell className="text-right">
+                      <ExpenseRowActions item={item} />
+                    </TableCell>
                   </TableRow>
                 ))
               )}
             </TableBody>
             <TableFooter>
               <TableRow>
-                <TableCell colSpan={2}>Total</TableCell>
+                <TableCell colSpan={3}>Total</TableCell>
                 <TableCell className="text-right">{formatYen(monthTotal)}</TableCell>
               </TableRow>
             </TableFooter>

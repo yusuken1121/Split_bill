@@ -13,8 +13,10 @@ export interface CoverageMonth {
 
 export type RegisteredByKind = Record<FixedCostKind, CoverageMonth[]>;
 
-const KIND_NAME_PATTERN =
-  /^(rent|gas|water|wifi)-([A-Za-z]+)$/i;
+const KIND_NAME_PATTERN = new RegExp(
+  `^(${FIXED_COST_KINDS.join("|")})-([A-Za-z]+)$`,
+  "i",
+);
 const LEGACY_RENT_PATTERN = /^Rent\s*-\s*([A-Za-z]+)$/i;
 
 function monthIndexFromName(raw: string): number | null {
@@ -62,6 +64,11 @@ export function coverageFromMonthKey(monthKey: string): CoverageMonth {
   };
 }
 
+export function lastDayOfCoverageMonth(coverage: CoverageMonth): string {
+  const lastDay = new Date(Date.UTC(coverage.year, coverage.month, 0)).getUTCDate();
+  return `${coverage.year}-${String(coverage.month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+}
+
 export function addMonths(coverage: CoverageMonth, count: number): CoverageMonth {
   const zeroBased = coverage.year * 12 + (coverage.month - 1) + count;
   return {
@@ -73,6 +80,7 @@ export function addMonths(coverage: CoverageMonth, count: number): CoverageMonth
 export function collectRegisteredMonths(items: ExpenseItem[]): RegisteredByKind {
   const registered: RegisteredByKind = {
     rent: [],
+    electric: [],
     wifi: [],
     gas: [],
     water: [],
