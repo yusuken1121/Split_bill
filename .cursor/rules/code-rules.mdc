@@ -9,7 +9,7 @@ Your goal is to write code that is maintainable, secure, and strictly adheres to
 
 # Architectural Boundaries (CRITICAL)
 
-We follow a strict Clean Architecture pattern. You must verify import paths before generating code.
+We follow a strict Clean Architecture pattern combined with the TanStack Query client pipeline from `boilertemplate_ai`. Verify import paths before generating code.
 
 - **src/core (Domain & Application Layer)**:
   - MUST NOT import from `src/infrastructure`, `src/app`, or external UI libraries (React, shadcn).
@@ -18,9 +18,15 @@ We follow a strict Clean Architecture pattern. You must verify import paths befo
 - **src/infrastructure (Infrastructure Layer)**:
   - Implements interfaces defined in `src/core/ports`.
   - Can import third-party SDKs (e.g., Google Generative AI SDK).
-- **src/app (UI & Interface Adapter Layer)**:
-  - Uses `src/core` via Server Actions.
-  - Can import `src/infrastructure` ONLY within Server Actions (`_actions`) for Dependency Injection.
+- **src/app/api (Composition Root)**:
+  - ONLY place where Infrastructure adapters are instantiated and injected into Use Cases.
+  - MUST validate all input with Zod before calling Use Cases.
+  - Do **not** use Server Actions.
+- **src/lib/api**:
+  - Axios wrappers and TanStack Query hooks for the client.
+  - MUST NOT import Infrastructure.
+- **src/app + src/features (UI)**:
+  - Pages and components call the server via React Query hooks — never Use Cases or Infrastructure directly.
   - Uses shadcn/ui and Tailwind CSS for styling.
 
 # Coding Standards
@@ -28,15 +34,19 @@ We follow a strict Clean Architecture pattern. You must verify import paths befo
 - **Language**: TypeScript (Strict Mode). Use specific types; avoid `any`.
 - **Styling**: Tailwind CSS with CSS variables. Use `cn()` utility for class merging.
 - **Components**: Functional components. Use Server Components by default; add 'use client' only when hooks are needed.
-- **Server Actions**: Always validate inputs using Zod before passing data to the Use Cases.
+- **HTTP boundary**: Always validate inputs using Zod in Route Handlers before passing data to Use Cases.
 - **Security**: NEVER hardcode API keys. Always use `process.env`.
 
 # Specific Implementation Guidelines
 
 - **Gemini Integration**:
-  - Do NOT call `GoogleGenerativeAI` directly in components or Server Actions.
+  - Do NOT call `GoogleGenerativeAI` directly in components or Route Handlers.
   - Always use the `IAIGateway` interface in Use Cases.
   - The implementation belongs in `src/infrastructure/gemini/`.
+
+- **Client data fetching**:
+  - Follow `.cursor/skills/react-query-api-pattern/SKILL.md`.
+  - Pipeline: UI → `useQuery`/`useMutation` → `src/lib/api` wrapper → Route Handler → Use Case / Notion helper.
 
 # Directory Context
 
@@ -44,3 +54,5 @@ We follow a strict Clean Architecture pattern. You must verify import paths befo
 - `src/core/use-cases`: Business logic.
 - `src/core/ports`: Interfaces for external services.
 - `src/infrastructure`: Implementations of ports.
+- `src/lib/api`: Client HTTP + TanStack Query.
+- `src/app/api`: Route Handlers (composition root).

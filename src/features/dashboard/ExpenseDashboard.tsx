@@ -13,9 +13,10 @@ import {
 } from "recharts";
 import {
   buildYearMonthSeries,
-  type DashboardData,
+  calculateDashboardData,
   type ReportLineItem,
 } from "@/lib/calculations";
+import { useExpenses } from "@/lib/api/queries/useExpenses";
 import {
   Table,
   TableBody,
@@ -73,20 +74,14 @@ function availableYears(monthlyTotals: Record<string, number>, selectedYear: num
   return [...years].sort((a, b) => b - a);
 }
 
-interface DashboardProps {
-  settlement: DashboardData["settlement"];
-  monthlyTotals: DashboardData["monthlyTotals"];
-  itemsByMonth: DashboardData["itemsByMonth"];
-}
-
-export function ExpenseDashboard({
-  settlement,
-  monthlyTotals,
-  itemsByMonth,
-}: DashboardProps) {
+export function ExpenseDashboard() {
+  const { data: expenses = [], isLoading, isError, error } = useExpenses();
+  const { settlement, monthlyTotals, itemsByMonth } = useMemo(
+    () => calculateDashboardData(expenses),
+    [expenses],
+  );
   const [viewMode, setViewMode] = useState<ViewMode>("monthly");
   const [selectedMonth, setSelectedMonth] = useState(currentMonthKey);
-
   const selectedYear = Number(selectedMonth.slice(0, 4));
   const years = availableYears(monthlyTotals, selectedYear);
   const chartData = useMemo(
@@ -100,6 +95,22 @@ export function ExpenseDashboard({
   const monthItems: ReportLineItem[] = itemsByMonth[selectedMonth] ?? [];
   const monthTotal = monthlyTotals[selectedMonth] ?? 0;
   const headlineTotal = viewMode === "monthly" ? monthTotal : yearTotal;
+
+  if (isLoading) {
+    return (
+      <p className="text-muted-foreground text-center py-10 bg-secondary/30 rounded-2xl border border-dashed border-border text-sm">
+        Loading expenses...
+      </p>
+    );
+  }
+
+  if (isError) {
+    return (
+      <p className="text-destructive text-center py-10 bg-secondary/30 rounded-2xl border border-dashed border-border text-sm">
+        {error.message}
+      </p>
+    );
+  }
 
   return (
     <div className="space-y-6 w-full max-w-4xl mx-auto">

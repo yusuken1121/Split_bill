@@ -7,14 +7,15 @@ It implements a **Clean Architecture** pattern using Next.js App Router, Server 
 
 **CRITICAL**: Understanding this map is required for correct code generation. The architecture strictly separates concerns.
 
-| Layer              | Path                 | Responsibility                                                | Dependencies               |
-| :----------------- | :------------------- | :------------------------------------------------------------ | :------------------------- |
-| **Domain**         | `src/core/domain`    | Enterprise business rules & Entities. Pure data structures.   | **None** (Pure TypeScript) |
-| **Use Case**       | `src/core/use-cases` | Application specific business logic. Orchestrates flow.       | Domain, Ports              |
-| **Ports**          | `src/core/ports`     | Interfaces (contracts) that abstract infrastructure.          | Domain                     |
-| **Infrastructure** | `src/infrastructure` | Concrete implementations of Ports (e.g., Gemini SDK).         | Ports, External SDKs       |
-| **Controller**     | `src/app/_actions`   | Server Actions entry points. Adapts UI requests to Use Cases. | Use Cases, Infra (for DI)  |
-| **UI**             | `src/app`            | React Components, Pages, Layouts.                             | Server Actions, UI Libs    |
+| Layer              | Path                      | Responsibility                                                | Dependencies               |
+| :----------------- | :------------------------ | :------------------------------------------------------------ | :------------------------- |
+| **Domain**         | `src/core/domain`         | Enterprise business rules & Entities. Pure data structures.   | **None** (Pure TypeScript) |
+| **Use Case**       | `src/core/use-cases`      | Application specific business logic. Orchestrates flow.       | Domain, Ports              |
+| **Ports**          | `src/core/ports`          | Interfaces (contracts) that abstract infrastructure.          | Domain                     |
+| **Infrastructure** | `src/infrastructure`      | Concrete implementations of Ports (e.g., Gemini SDK).         | Ports, External SDKs       |
+| **API Routes**     | `src/app/api`             | Composition Root. Zod validation + DI into Use Cases.         | Use Cases, Infra           |
+| **Client API**     | `src/lib/api`             | Axios wrappers + TanStack Query hooks.                        | Core types, HTTP           |
+| **UI**             | `src/app`, `src/features` | React Components, Pages, Layouts.                             | React Query hooks, UI Libs |
 
 ## 📂 Project Structure
 
@@ -22,21 +23,19 @@ It implements a **Clean Architecture** pattern using Next.js App Router, Server 
 src/
 ├── app/                        # [UI Layer] Next.js App Router
 │   ├── (routes)/               # Pages
-│   ├── _components/            # shadcn/ui components
-│   └── _actions/               # Server Actions (Controllers) & Composition Root
+│   ├── api/                    # Route Handlers (Composition Root)
+│   └── _components/            # Shared UI
 │
 ├── core/                       # [Domain & Application Layer] NO External Libs
-│   ├── domain/                 # Entities (e.g., Message, ChatSession)
-│   ├── use-cases/              # Business Logic (e.g., SendMessageUseCase)
-│   └── ports/                  # Interfaces (e.g., IAIGateway)
+│   ├── domain/
+│   ├── use-cases/
+│   └── ports/
 │
 ├── infrastructure/             # [Infrastructure Layer]
-│   ├── gemini/                 # Google AI SDK Implementation
-│   │   ├── prompts.ts          # System prompts for AI models
-│   │   └── GeminiAdapter.ts    # Concrete implementation of IFlowchartGenerator
-│   └── di/                     # Dependency Injection containers (if needed)
+│   └── gemini/
 │
-└── lib/                        # Shared Utilities
+├── lib/api/                    # Axios clients + TanStack Query hooks
+└── providers/                  # QueryClientProvider
 
 ## ⚙️ Configuration
 
@@ -102,11 +101,15 @@ npm run dev
 
 1. Dependency Rule: Source code dependencies must only point inward (towards Domain). `core` must never import from `infrastructure` or `app`.
 
-2. Dependency Injection:
+2. Composition Root:
 
-- Concrete implementations (like `GeminiGateway` or `GeminiAdapter`) are injected into Use Cases inside `src/app/_actions` or a dedicated DI container.
-
+- Concrete implementations (like `GeminiGateway`) are injected into Use Cases inside `src/app/api/**/route.ts`.
 - Use Cases must only depend on Interfaces (`ports`), never on concrete classes.
 
-3. No SDKs in Core: The `core` folder must remain framework-agnostic. No `next/*` or `google-generative-ai` imports allowed here.
+3. Client → API Routes:
+
+- UI components call the server through TanStack Query hooks in `src/lib/api/queries/`.
+- Do **not** use Server Actions. Do **not** call Use Cases or Infrastructure from components.
+
+4. No SDKs in Core: The `core` folder must remain framework-agnostic. No `next/*` or `google-generative-ai` imports allowed here.
 

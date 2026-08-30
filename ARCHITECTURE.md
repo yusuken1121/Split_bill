@@ -1,255 +1,132 @@
-# Clean Architecture Implementation - Chat Application
+# Clean Architecture + TanStack Query
 
-This document describes the complete Clean Architecture implementation for the chat application.
+This document describes the client-to-server pipeline used by Split bill, adapted from `boilertemplate_ai`.
 
-## 🏗️ Architecture Overview
+## Architecture Overview
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                        UI Layer                              │
-│  src/app/_components/example-chat.tsx                       │
-│  (React Components - User Interface)                        │
+│  src/app, src/features/**/*.tsx                             │
+│  React Query hooks only — no fetch / no Server Actions       │
 └────────────────────┬────────────────────────────────────────┘
                      │
                      ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                   Controller Layer                           │
-│  src/app/_actions/chat.ts                                   │
-│  (Server Actions - Input Validation & DI)                   │
+│              Client API Layer (TanStack Query)               │
+│  src/lib/api/queries/useChat.ts, useExpenses.ts             │
+│  src/lib/api/chat.ts, expenses.ts, apiClient.ts             │
 └────────────────────┬────────────────────────────────────────┘
                      │
                      ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                  Application Layer                           │
+│            Route Handler (Composition Root)                  │
+│  src/app/api/chat/route.ts                                  │
+│  src/app/api/expenses/**/route.ts                           │
+│  Zod validation + dependency injection                       │
+└────────────────────┬────────────────────────────────────────┘
+                     │
+                     ▼
+┌─────────────────────────────────────────────────────────────┐
+│                  Application / Domain                        │
 │  src/core/use-cases/send-message.use-case.ts                │
-│  (Business Logic - Orchestration)                           │
-└────────────────────┬────────────────────────────────────────┘
-                     │
-                     ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    Port Layer                                │
-│  src/core/ports/ai-gateway.port.ts                          │
-│  (Interfaces - Abstractions)                                │
+│  src/lib/notion.ts, src/lib/calculations.ts                 │
 └────────────────────┬────────────────────────────────────────┘
                      │
                      ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                Infrastructure Layer                          │
 │  src/infrastructure/gemini/gemini.gateway.ts                │
-│  (Concrete Implementations - External SDKs)                 │
+│  Notion SDK via src/lib/notion.ts                           │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-## 📂 File Structure
+## File Structure
 
 ```
 src/
 ├── core/                           # Domain & Application Layer (Pure TypeScript)
 │   ├── domain/
-│   │   └── message.entity.ts       # Message entity with factory functions
 │   ├── ports/
-│   │   └── ai-gateway.port.ts      # IAIGateway interface
 │   └── use-cases/
-│       └── send-message.use-case.ts # SendMessageUseCase
 │
-├── infrastructure/                  # Infrastructure Layer
+├── infrastructure/                 # Concrete adapters (Gemini)
 │   └── gemini/
-│       ├── gemini.gateway.ts       # GeminiGateway implementation
-│       ├── index.ts                # Barrel exports
-│       └── example-usage.ts        # Usage examples
 │
-└── app/                            # UI & Controller Layer
-    ├── _actions/
-    │   └── chat.ts                 # Server Actions (Composition Root)
+├── lib/
+│   ├── api/
+│   │   ├── apiClient.ts            # Axios instance
+│   │   ├── queryClient.ts
+│   │   ├── chat.ts                 # Chat endpoint wrapper
+│   │   ├── expenses.ts             # Expense endpoint wrappers
+│   │   └── queries/
+│   │       ├── useChat.ts
+│   │       └── useExpenses.ts
+│   ├── validators/                 # HTTP-boundary Zod schemas
+│   ├── notion.ts                   # Notion reads/writes
+│   └── calculations.ts
+│
+├── providers/
+│   └── query-client-provider.tsx
+│
+└── app/
+    ├── api/                        # Composition Root (Route Handlers)
+    │   ├── chat/route.ts
+    │   ├── expenses/
+    │   └── fixed-costs/route.ts
     └── _components/
-        └── example-chat.tsx        # Example UI component
 ```
 
-## 🔄 Data Flow
+## Data Flow
 
-### 1. User Interaction (UI Layer)
+### Chat (streaming)
+
+1. UI calls `useSendMessageStream()`.
+2. Hook calls `chatApi.sendMessageStream` (`fetch`, because Axios buffers the body).
+3. `POST /api/chat` validates with Zod, injects `GeminiGateway` into `SendMessageUseCase`.
+4. The Route Handler returns a `ReadableStream`; the UI reads chunks.
+
+### Expenses
+
+1. Pages render client components that call `useExpenses()`.
+2. Mutations (`useCreateExpense`, `useUpdateExpense`, `useCheckoutExpense`, `useDeleteExpense`, `useSaveFixedCost`) hit the matching Route Handler.
+3. On success the hooks invalidate `expenseKeys.all`, so Dashboard / Pending / Fixed costs stay in sync without `router.refresh()`.
+
+## Key Principles
+
+### 1. Dependency Inversion
+
+- Chat use case depends on `IAIGateway`, not Gemini.
+- UI depends on React Query hooks, not Route Handlers or Notion.
+
+### 2. Composition Root
+
+Infrastructure is instantiated only in `src/app/api/**/route.ts`.
+
 ```typescript
-// User types a message in the UI
-const userMessage = createChatMessage('user', 'Hello!');
-```
-
-### 2. Server Action (Controller Layer)
-```typescript
-// Server Action validates input and coordinates
-const stream = await sendMessageAction({
-  messages: [userMessage],
-  options: { temperature: 0.7 }
-});
-```
-
-### 3. Use Case (Application Layer)
-```typescript
-// Use case executes business logic
-const sendMessageUseCase = new SendMessageUseCase(aiGateway);
-const { stream } = await sendMessageUseCase.execute({ messages, options });
-```
-
-### 4. Port (Interface)
-```typescript
-// Use case depends on abstraction, not implementation
-interface IAIGateway {
-  generateStream(messages: Message[], options?: AIGenerateOptions): Promise<ReadableStream<string>>;
-}
-```
-
-### 5. Infrastructure (Implementation)
-```typescript
-// Gemini Gateway implements the port
-class GeminiGateway implements IAIGateway {
-  async generateStream(messages, options) {
-    // Calls Google Generative AI SDK
-  }
-}
-```
-
-## 🎯 Key Principles Demonstrated
-
-### 1. Dependency Inversion Principle (DIP)
-- **Use Case** depends on `IAIGateway` interface (abstraction)
-- **GeminiGateway** implements the interface (concrete)
-- Dependencies point inward (toward domain)
-
-### 2. Dependency Injection (DI)
-```typescript
-// Composition Root in Server Action
 const aiGateway = createGeminiGateway();
 const useCase = new SendMessageUseCase(aiGateway);
 ```
 
-### 3. Single Responsibility Principle (SRP)
-- **Entity**: Data structure only
-- **Use Case**: Business logic only
-- **Gateway**: External service integration only
-- **Server Action**: Input validation & coordination only
+### 3. Do not use Server Actions
 
-### 4. Open/Closed Principle (OCP)
-- Easy to add new AI providers (OpenAI, Claude) by implementing `IAIGateway`
-- No changes needed to use cases or domain layer
+Client features go through HTTP Route Handlers so Axios + TanStack Query stay consistent.
 
-## 🚀 Usage Examples
+## Configuration
 
-### Basic Streaming Chat
-```typescript
-import { sendMessageAction, createChatMessage } from '@/app/_actions/chat';
-
-const userMessage = createChatMessage('user', 'Explain Clean Architecture');
-const stream = await sendMessageAction({
-  messages: [userMessage],
-  options: { temperature: 0.7 }
-});
-
-// Read the stream
-const reader = stream.getReader();
-while (true) {
-  const { done, value } = await reader.read();
-  if (done) break;
-  console.log(new TextDecoder().decode(value));
-}
-```
-
-### Non-Streaming Response
-```typescript
-import { sendMessageCompleteAction, createChatMessage } from '@/app/_actions/chat';
-
-const userMessage = createChatMessage('user', 'What is TypeScript?');
-const response = await sendMessageCompleteAction({
-  messages: [userMessage],
-  options: { temperature: 0.5 }
-});
-
-console.log(response);
-```
-
-### Multi-turn Conversation
-```typescript
-const messages = [
-  createChatMessage('system', 'You are a helpful coding assistant.'),
-  createChatMessage('user', 'What is Clean Architecture?'),
-  createChatMessage('assistant', 'Clean Architecture is...'),
-  createChatMessage('user', 'Can you give an example?'),
-];
-
-const stream = await sendMessageAction({ messages });
-```
-
-## 🔧 Configuration
-
-### Environment Variables
 ```bash
 # .env.local
 GEMINI_API_KEY=your_api_key_here
+NOTION_API_KEY=your_notion_key
+NOTION_SHOPPING_DATABASE_ID=your_database_id
 ```
 
-### AI Options
-```typescript
-{
-  temperature: 0.7,      // 0.0 - 2.0 (creativity)
-  maxTokens: 2048,       // Maximum response length
-  topP: 0.9,             // Nucleus sampling
-  model: 'gemini-2.0-flash-exp', // Model identifier
-  systemPrompt: 'You are...' // System instructions
-}
+Optional client API base URL (leave empty for same-origin):
+
+```bash
+NEXT_PUBLIC_API_URL=
 ```
 
-## 🧪 Testing Strategy
+## Adding a New Feature
 
-### Unit Tests (Core Layer)
-```typescript
-// Test use case with mock gateway
-const mockGateway: IAIGateway = {
-  generateStream: jest.fn(),
-  generate: jest.fn(),
-};
-
-const useCase = new SendMessageUseCase(mockGateway);
-```
-
-### Integration Tests (Infrastructure)
-```typescript
-// Test real Gemini integration
-const gateway = new GeminiGateway(TEST_API_KEY);
-const stream = await gateway.generateStream([testMessage]);
-```
-
-## 📝 Adding New AI Providers
-
-To add a new AI provider (e.g., OpenAI):
-
-1. **Create implementation** in `src/infrastructure/openai/`:
-```typescript
-export class OpenAIGateway implements IAIGateway {
-  async generateStream(messages: Message[], options?: AIGenerateOptions) {
-    // Implement using OpenAI SDK
-  }
-}
-```
-
-2. **Update Server Action** to use new gateway:
-```typescript
-const aiGateway = createOpenAIGateway(); // Instead of createGeminiGateway()
-```
-
-3. **No changes needed** to:
-   - Domain entities
-   - Use cases
-   - Ports
-   - UI components
-
-## 🎓 Benefits of This Architecture
-
-1. **Testability**: Easy to mock dependencies for unit testing
-2. **Maintainability**: Clear separation of concerns
-3. **Flexibility**: Swap implementations without changing business logic
-4. **Scalability**: Add features without modifying existing code
-5. **Framework Independence**: Core logic doesn't depend on Next.js or React
-
-## 📚 Further Reading
-
-- [Clean Architecture by Robert C. Martin](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)
-- [Dependency Inversion Principle](https://en.wikipedia.org/wiki/Dependency_inversion_principle)
-- [SOLID Principles](https://en.wikipedia.org/wiki/SOLID)
+Follow `.cursor/skills/react-query-api-pattern/SKILL.md`.

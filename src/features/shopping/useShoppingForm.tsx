@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { saveShoppingAction } from "./actions";
+import { useCreateExpense } from "@/lib/api/queries/useExpenses";
 import { Payer, Whose, Status, QuickShoppingItem } from "./types";
 
 export function useShoppingForm() {
@@ -13,9 +13,10 @@ export function useShoppingForm() {
   const [status, setStatus] = useState<Status>("Not bought");
   const [whoPaid, setWhoPaid] = useState<Payer>(null);
   const [whose, setWhose] = useState<Whose>("both");
-
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const { mutateAsync: createExpense, isPending: isSubmitting } =
+    useCreateExpense();
 
   const showToast = (message: string) => {
     setToastMessage(message);
@@ -32,11 +33,10 @@ export function useShoppingForm() {
     e.preventDefault();
     if (!stuff) return;
 
-    setIsSubmitting(true);
     try {
       const numericPrice = price ? parseFloat(price) : undefined;
 
-      await saveShoppingAction({
+      await createExpense({
         stuff,
         date,
         price: numericPrice,
@@ -45,19 +45,19 @@ export function useShoppingForm() {
         whose,
       });
 
-      // Show success toast
       showToast("Successfully added items to buy! 🎉");
 
-      // Reset form, but keep some defaults
       setStuff("");
       setPrice("");
       setStatus("Not bought");
       setWhoPaid(null);
     } catch (error) {
       console.error(error);
-      alert("Failed to save. Please try again.");
-    } finally {
-      setIsSubmitting(false);
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Failed to save. Please try again.",
+      );
     }
   };
 

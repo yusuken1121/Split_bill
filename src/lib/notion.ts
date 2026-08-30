@@ -31,6 +31,12 @@ async function getShoppingDataSourceId(): Promise<string> {
   return DATABASE_ID;
 }
 
+function requireNotionApiKey() {
+  if (!process.env.NOTION_API_KEY) {
+    throw new Error("NOTION_API_KEY is not defined in environment variables.");
+  }
+}
+
 export async function getExpenses(): Promise<ExpenseItem[]> {
   if (!process.env.NOTION_API_KEY) {
     console.error("NOTION_API_KEY is not set.");
@@ -67,4 +73,108 @@ export async function getExpenses(): Promise<ExpenseItem[]> {
 
     return [];
   }
+}
+
+export async function createExpense(data: {
+  stuff: string;
+  date: string;
+  price?: number;
+  status: string;
+  whoPaid: "Y" | "E" | null;
+  whose: "both" | "Y" | "E";
+}): Promise<void> {
+  requireNotionApiKey();
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const properties: Record<string, any> = {
+    Stuff: {
+      title: [{ text: { content: data.stuff } }],
+    },
+    Status: {
+      status: { name: data.status },
+    },
+    Date: {
+      date: { start: data.date },
+    },
+    whose: {
+      select: { name: data.whose },
+    },
+  };
+
+  if (data.price !== undefined && !Number.isNaN(data.price)) {
+    properties.Price = { number: data.price };
+  }
+
+  if (data.whoPaid) {
+    properties["who paid"] = { select: { name: data.whoPaid } };
+  }
+
+  await notion.pages.create({
+    parent: { database_id: DATABASE_ID },
+    properties,
+  });
+}
+
+export async function updateExpense(data: {
+  id: string;
+  name: string;
+  date: string;
+  price: number;
+  whose: "both" | "Y" | "E";
+  whoPaid: "Y" | "E";
+}): Promise<void> {
+  requireNotionApiKey();
+
+  await notion.pages.update({
+    page_id: data.id,
+    properties: {
+      Stuff: {
+        title: [{ text: { content: data.name } }],
+      },
+      Date: {
+        date: { start: data.date },
+      },
+      Price: {
+        number: data.price,
+      },
+      whose: {
+        select: { name: data.whose },
+      },
+      "who paid": {
+        select: { name: data.whoPaid },
+      },
+    },
+  });
+}
+
+export async function checkoutExpense(data: {
+  id: string;
+  price: number;
+  whoPaid: "Y" | "E";
+}): Promise<void> {
+  requireNotionApiKey();
+
+  await notion.pages.update({
+    page_id: data.id,
+    properties: {
+      Status: {
+        status: { name: "Done" },
+      },
+      Price: {
+        number: data.price,
+      },
+      "who paid": {
+        select: { name: data.whoPaid },
+      },
+    },
+  });
+}
+
+export async function deleteExpense(id: string): Promise<void> {
+  requireNotionApiKey();
+
+  await notion.pages.update({
+    page_id: id,
+    in_trash: true,
+  });
 }

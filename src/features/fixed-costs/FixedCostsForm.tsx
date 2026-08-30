@@ -1,9 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import { Droplets, ExternalLink, Flame, Home, Wifi, Zap } from "lucide-react";
-import type { ExpenseItem } from "@/lib/notion";
+import {
+  useExpenses,
+  useSaveFixedCost,
+} from "@/lib/api/queries/useExpenses";
 import {
   FIXED_COST_DEFAULTS,
   FIXED_COST_KINDS,
@@ -25,7 +27,6 @@ import {
   monthKeyFromCoverage,
   nextBimonthlyDue,
 } from "./parse";
-import { saveFixedCostAction } from "./actions";
 
 function currentMonthKey() {
   const now = new Date();
@@ -48,13 +49,10 @@ const KIND_ICONS: Record<FixedCostKind, typeof Home> = {
   water: Droplets,
 };
 
-interface FixedCostsFormProps {
-  expenses: ExpenseItem[];
-}
-
-export function FixedCostsForm({ expenses }: FixedCostsFormProps) {
-  const router = useRouter();
+export function FixedCostsForm() {
+  const { data: expenses = [], isLoading } = useExpenses();
   const registered = useMemo(() => collectRegisteredMonths(expenses), [expenses]);
+  const { mutateAsync: saveFixedCost } = useSaveFixedCost();
   const [coverageMonth, setCoverageMonth] = useState(currentMonthKey);
   const [prices, setPrices] = useState<Record<Exclude<FixedCostKind, "rent">, string>>({
     electric: "",
@@ -84,7 +82,7 @@ export function FixedCostsForm({ expenses }: FixedCostsFormProps) {
     setErrorMessage(null);
     setSubmittingKind(kind);
     try {
-      await saveFixedCostAction({
+      await saveFixedCost({
         kind,
         coverageMonth,
         price,
@@ -93,7 +91,6 @@ export function FixedCostsForm({ expenses }: FixedCostsFormProps) {
       if (kind !== "rent") {
         setPrices((current) => ({ ...current, [kind]: "" }));
       }
-      router.refresh();
     } catch (error) {
       console.error(error);
       setErrorMessage(
@@ -124,6 +121,7 @@ export function FixedCostsForm({ expenses }: FixedCostsFormProps) {
           Saves as <span className="font-mono">kind-Month</span> (for example{" "}
           <span className="font-mono">rent-May</span>). Rent is always{" "}
           {formatYen(RENT_PRICE)}.
+          {isLoading ? " Loading registered months..." : ""}
         </p>
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="block space-y-2">

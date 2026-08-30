@@ -174,7 +174,7 @@ export class GeminiGateway implements IAIGateway {
 
 /**
  * Factory function to create a GeminiGateway instance
- * Useful for dependency injection in Server Actions
+ * Useful for dependency injection in Route Handlers
  */
 export function createGeminiGateway(apiKey?: string): IAIGateway {
   return new GeminiGateway(apiKey);
