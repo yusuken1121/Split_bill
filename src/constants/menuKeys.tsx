@@ -4,10 +4,16 @@ import {
   LogOutIcon,
   Settings,
   ShoppingCart,
+  ListTodo,
+  LayoutDashboard,
+  Receipt,
 } from "lucide-react";
 
 export const MENU_KEYS = {
   HOME: "home",
+  PENDING: "pending",
+  DASHBOARD: "dashboard",
+  FIXED_COSTS: "fixed-costs",
   SETTINGS: "settings",
   LOGOUT: "logout",
 } as const;
@@ -24,10 +30,28 @@ export interface SidebarItemConfig {
 
 export const SIDEBAR_CONFIG: Record<MenuKey, SidebarItemConfig> = {
   [MENU_KEYS.HOME]: {
-    label: "Shopping List",
+    label: "Add Item",
     path: PATH.HOME,
     icon: <ShoppingCart className="h-5 w-5" />,
     activeColor: "text-purple-600 dark:text-purple-400",
+  },
+  [MENU_KEYS.PENDING]: {
+    label: "Pending Items",
+    path: PATH.PENDING,
+    icon: <ListTodo className="h-5 w-5" />,
+    activeColor: "text-blue-600 dark:text-blue-400",
+  },
+  [MENU_KEYS.DASHBOARD]: {
+    label: "Dashboard",
+    path: PATH.DASHBOARD,
+    icon: <LayoutDashboard className="h-5 w-5" />,
+    activeColor: "text-green-600 dark:text-green-400",
+  },
+  [MENU_KEYS.FIXED_COSTS]: {
+    label: "Fixed costs",
+    path: PATH.FIXED_COSTS,
+    icon: <Receipt className="h-5 w-5" />,
+    activeColor: "text-orange-600 dark:text-orange-400",
   },
   [MENU_KEYS.SETTINGS]: {
     label: "Settings",
@@ -43,6 +67,11 @@ export const SIDEBAR_CONFIG: Record<MenuKey, SidebarItemConfig> = {
   },
 };
 
-export const mainSidebar: MenuKey[] = [MENU_KEYS.HOME];
+export const mainSidebar: MenuKey[] = [
+  MENU_KEYS.HOME,
+  MENU_KEYS.PENDING,
+  MENU_KEYS.DASHBOARD,
+  MENU_KEYS.FIXED_COSTS,
+];
 export const manageSidebar: MenuKey[] = [MENU_KEYS.SETTINGS];
 export const footerSidebar: MenuKey[] = [MENU_KEYS.LOGOUT];

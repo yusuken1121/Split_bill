@@ -2,6 +2,7 @@
 
 import { Client } from "@notionhq/client";
 import { ShoppingData } from "./types";
+import { revalidatePath } from "next/cache";
 
 const notion = new Client({ auth: process.env.NOTION_API_KEY });
 const shoppingDatabaseId =
@@ -60,9 +61,47 @@ export async function saveShoppingAction(data: ShoppingData) {
       properties,
     });
 
+    revalidatePath("/pending");
+    revalidatePath("/dashboard");
+    revalidatePath("/fixed-costs");
+    revalidatePath("/");
+    
     return { success: true };
   } catch (error) {
     console.error("Failed to save shopping item to Notion:", error);
     throw new Error("Failed to save to Notion");
+  }
+}
+
+export async function updateShoppingAction(id: string, price: number, whoPaid: "Y" | "E") {
+  if (!process.env.NOTION_API_KEY) {
+    throw new Error("NOTION_API_KEY is not defined in environment variables.");
+  }
+
+  try {
+    await notion.pages.update({
+      page_id: id,
+      properties: {
+        "Status": {
+          status: { name: "Done" },
+        },
+        "Price": {
+          number: price,
+        },
+        "who paid": {
+          select: { name: whoPaid },
+        },
+      },
+    });
+
+    revalidatePath("/pending");
+    revalidatePath("/dashboard");
+    revalidatePath("/fixed-costs");
+    revalidatePath("/");
+
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to update shopping item in Notion:", error);
+    throw new Error("Failed to update in Notion");
   }
 }
