@@ -56,7 +56,7 @@ export const useCreateExpense = (
   });
 };
 
-type UpdateExpenseVariables = { id: string } & UpdateExpenseInput;
+type UpdateExpenseVariables = UpdateExpenseInput;
 
 export const useUpdateExpense = (
   options?: UseMutationOptions<
@@ -67,8 +67,7 @@ export const useUpdateExpense = (
 ) => {
   const invalidate = useInvalidateExpenses();
   return useMutation({
-    mutationFn: ({ id, ...data }: UpdateExpenseVariables) =>
-      expensesApi.update(id, data),
+    mutationFn: expensesApi.update,
     ...options,
     onSuccess: async (data, variables, onMutateResult, context) => {
       await invalidate();
@@ -77,7 +76,7 @@ export const useUpdateExpense = (
   });
 };
 
-type CheckoutExpenseVariables = { id: string } & CheckoutExpenseInput;
+type CheckoutExpenseVariables = CheckoutExpenseInput;
 
 export const useCheckoutExpense = (
   options?: UseMutationOptions<
@@ -88,8 +87,7 @@ export const useCheckoutExpense = (
 ) => {
   const invalidate = useInvalidateExpenses();
   return useMutation({
-    mutationFn: ({ id, ...data }: CheckoutExpenseVariables) =>
-      expensesApi.checkout(id, data),
+    mutationFn: expensesApi.checkout,
     ...options,
     onSuccess: async (data, variables, onMutateResult, context) => {
       await invalidate();

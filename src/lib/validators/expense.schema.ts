@@ -15,6 +15,7 @@ export const createExpenseSchema = z.object({
 });
 
 export const updateExpenseSchema = z.object({
+  id: z.string().min(1),
   name: z.string().trim().min(1),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   price: z.number().nonnegative(),
@@ -23,8 +24,13 @@ export const updateExpenseSchema = z.object({
 });
 
 export const checkoutExpenseSchema = z.object({
+  id: z.string().min(1),
   price: z.number().positive(),
   whoPaid: payerSchema,
+});
+
+export const deleteExpenseSchema = z.object({
+  id: z.string().min(1),
 });
 
 export const saveFixedCostSchema = z.object({

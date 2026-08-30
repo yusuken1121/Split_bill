@@ -31,30 +31,26 @@ export const expensesApi = {
     ) as Promise<MutationSuccessResponse>;
   },
 
-  update: async (
-    id: string,
-    data: UpdateExpenseInput,
-  ): Promise<MutationSuccessResponse> => {
+  update: async (data: UpdateExpenseInput): Promise<MutationSuccessResponse> => {
     return apiClient.patch(
-      `/api/expenses/${id}`,
+      "/api/expenses",
       data,
     ) as Promise<MutationSuccessResponse>;
   },
 
   checkout: async (
-    id: string,
     data: CheckoutExpenseInput,
   ): Promise<MutationSuccessResponse> => {
     return apiClient.post(
-      `/api/expenses/${id}/checkout`,
+      "/api/expenses/checkout",
       data,
     ) as Promise<MutationSuccessResponse>;
   },
 
   remove: async (id: string): Promise<MutationSuccessResponse> => {
-    return apiClient.delete(
-      `/api/expenses/${id}`,
-    ) as Promise<MutationSuccessResponse>;
+    return apiClient.delete("/api/expenses", {
+      data: { id },
+    }) as Promise<MutationSuccessResponse>;
   },
 
   saveFixedCost: async (

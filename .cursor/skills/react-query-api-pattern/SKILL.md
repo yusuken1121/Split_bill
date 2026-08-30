@@ -99,12 +99,12 @@ export function SomeForm() {
 
 ## Existing Examples
 
-| Feature          | Hook                  | Route                          | UI                  |
-| :--------------- | :-------------------- | :----------------------------- | :------------------ |
-| Chat (stream)    | `useSendMessageStream` | `/api/chat`                   | `ChatInterface`     |
-| Expenses list    | `useExpenses`          | `GET /api/expenses`           | Dashboard / ToDo    |
-| Expense create   | `useCreateExpense`     | `POST /api/expenses`          | `ShoppingForm`      |
-| Expense update   | `useUpdateExpense`     | `PATCH /api/expenses/[id]`    | `ExpenseRowActions` |
-| Expense checkout | `useCheckoutExpense`   | `POST /api/expenses/[id]/checkout` | `ToDoList`     |
-| Expense delete   | `useDeleteExpense`     | `DELETE /api/expenses/[id]`   | `ExpenseRowActions` |
-| Fixed cost save  | `useSaveFixedCost`     | `POST /api/fixed-costs`       | `FixedCostsForm`    |
+| Feature          | Hook                   | Route                       | UI                  |
+| :--------------- | :--------------------- | :-------------------------- | :------------------ |
+| Chat (stream)    | `useSendMessageStream` | `/api/chat`                 | `ChatInterface`     |
+| Expenses list    | `useExpenses`          | `GET /api/expenses`         | Dashboard / ToDo    |
+| Expense create   | `useCreateExpense`     | `POST /api/expenses`        | `ShoppingForm`      |
+| Expense update   | `useUpdateExpense`     | `PATCH /api/expenses`       | `ExpenseRowActions` |
+| Expense checkout | `useCheckoutExpense`   | `POST /api/expenses/checkout` | `ToDoList`        |
+| Expense delete   | `useDeleteExpense`     | `DELETE /api/expenses`      | `ExpenseRowActions` |
+| Fixed cost save  | `useSaveFixedCost`     | `POST /api/fixed-costs`     | `FixedCostsForm`    |
