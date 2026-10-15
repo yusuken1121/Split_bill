@@ -11,7 +11,12 @@ export interface CoverageMonth {
   month: number;
 }
 
+export interface FixedCostAmount extends CoverageMonth {
+  price: number;
+}
+
 export type RegisteredByKind = Record<FixedCostKind, CoverageMonth[]>;
+export type AmountsByKind = Record<FixedCostKind, FixedCostAmount[]>;
 
 const KIND_NAME_PATTERN = new RegExp(
   `^(${FIXED_COST_KINDS.join("|")})-([A-Za-z]+)$`,
@@ -77,14 +82,18 @@ export function addMonths(coverage: CoverageMonth, count: number): CoverageMonth
   };
 }
 
-export function collectRegisteredMonths(items: ExpenseItem[]): RegisteredByKind {
-  const registered: RegisteredByKind = {
+function emptyAmountsByKind(): AmountsByKind {
+  return {
     rent: [],
     electric: [],
     wifi: [],
     gas: [],
     water: [],
   };
+}
+
+export function collectFixedCostAmounts(items: ExpenseItem[]): AmountsByKind {
+  const amounts = emptyAmountsByKind();
 
   for (const item of items) {
     const parsed = parseFixedCostName(item.name);
@@ -95,18 +104,31 @@ export function collectRegisteredMonths(items: ExpenseItem[]): RegisteredByKind 
     if (!Number.isFinite(year)) {
       continue;
     }
-    const already = registered[parsed.kind].some(
+    const already = amounts[parsed.kind].some(
       (entry) => entry.year === year && entry.month === parsed.month,
     );
     if (!already) {
-      registered[parsed.kind].push({ year, month: parsed.month });
+      amounts[parsed.kind].push({
+        year,
+        month: parsed.month,
+        price: item.price,
+      });
     }
   }
 
   for (const kind of FIXED_COST_KINDS) {
-    registered[kind].sort((a, b) => a.year - b.year || a.month - b.month);
+    amounts[kind].sort((a, b) => a.year - b.year || a.month - b.month);
   }
 
+  return amounts;
+}
+
+export function collectRegisteredMonths(items: ExpenseItem[]): RegisteredByKind {
+  const amounts = collectFixedCostAmounts(items);
+  const registered = {} as RegisteredByKind;
+  for (const kind of FIXED_COST_KINDS) {
+    registered[kind] = amounts[kind].map(({ year, month }) => ({ year, month }));
+  }
   return registered;
 }
 

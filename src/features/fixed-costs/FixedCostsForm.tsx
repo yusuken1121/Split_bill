@@ -16,6 +16,7 @@ import {
   RENT_PRICE,
   type FixedCostKind,
 } from "./constants";
+import { FixedCostsTrend } from "./FixedCostsTrend";
 import {
   collectRegisteredMonths,
   coverageFromMonthKey,
@@ -169,6 +170,8 @@ export function FixedCostsForm() {
           <p className="text-sm text-destructive font-medium">{errorMessage}</p>
         ) : null}
       </div>
+
+      <FixedCostsTrend expenses={expenses} isLoading={isLoading} />
 
       <div className="grid gap-4 md:grid-cols-2">
         {FIXED_COST_KINDS.map((kind) => {
