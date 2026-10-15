@@ -12,5 +12,5 @@
 
 ## 3. Verification
 
-- [ ] 3.1 Verify all-kinds view: year with data shows stacked amounts, table month totals match the chart, empty year is ¥0 with twelve zero months
-- [ ] 3.2 Verify kind focus, year change, and that shopping (non fixed-cost) rows never appear in the trend
+- [x] 3.1 Verify all-kinds view: year with data shows stacked amounts, table month totals match the chart, empty year is ¥0 with twelve zero months
+- [x] 3.2 Verify kind focus, year change, and that shopping (non fixed-cost) rows never appear in the trend
