@@ -92,8 +92,8 @@ export function FixedCostsTrend({
     focusKind === "all" ? FIXED_COST_KINDS : ([focusKind] as const);
 
   return (
-    <div className="p-6 bg-card text-card-foreground shadow-sm rounded-3xl border border-border space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div className="min-w-0 w-full overflow-hidden p-4 sm:p-6 bg-card text-card-foreground shadow-sm rounded-3xl border border-border space-y-4">
+      <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <h2 className="text-lg font-extrabold flex items-center gap-2">
           <span aria-hidden="true">📈</span> Fixed cost trend
         </h2>
@@ -222,46 +222,56 @@ export function FixedCostsTrend({
         </ResponsiveContainer>
       </div>
 
-      <div className="max-h-[min(18rem,38vh)] min-w-0 overflow-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Month</TableHead>
-              {FIXED_COST_KINDS.map((kind) => (
-                <TableHead key={kind} className="text-right">
-                  {KIND_LABELS[kind]}
-                </TableHead>
-              ))}
-              <TableHead className="text-right">Total</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {series.map((row) => (
-              <TableRow key={row.month}>
-                <TableCell>{row.month}</TableCell>
+      <div className="min-w-0 w-full max-h-[min(18rem,38vh)] overflow-auto">
+          <Table className="text-xs sm:text-sm">
+            <TableHeader>
+              <TableRow>
+                <TableHead className="px-1.5 sm:px-2">Month</TableHead>
                 {FIXED_COST_KINDS.map((kind) => (
-                  <TableCell key={kind} className="text-right">
-                    {formatYen(row[kind])}
+                  <TableHead key={kind} className="px-1.5 sm:px-2 text-right">
+                    {KIND_LABELS[kind]}
+                  </TableHead>
+                ))}
+                <TableHead className="px-1.5 sm:px-2 text-right">Total</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {series.map((row) => (
+                <TableRow key={row.month}>
+                  <TableCell className="px-1.5 sm:px-2">
+                    {monthTick(row.month)}
+                  </TableCell>
+                  {FIXED_COST_KINDS.map((kind) => (
+                    <TableCell
+                      key={kind}
+                      className="px-1.5 sm:px-2 text-right tabular-nums"
+                    >
+                      {formatYen(row[kind])}
+                    </TableCell>
+                  ))}
+                  <TableCell className="px-1.5 sm:px-2 text-right font-medium tabular-nums">
+                    {formatYen(row.total)}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+            <TableFooter>
+              <TableRow>
+                <TableCell className="px-1.5 sm:px-2">Total</TableCell>
+                {FIXED_COST_KINDS.map((kind) => (
+                  <TableCell
+                    key={kind}
+                    className="px-1.5 sm:px-2 text-right tabular-nums"
+                  >
+                    {formatYen(yearTotalForKind(series, kind))}
                   </TableCell>
                 ))}
-                <TableCell className="text-right font-medium">
-                  {formatYen(row.total)}
+                <TableCell className="px-1.5 sm:px-2 text-right tabular-nums">
+                  {formatYen(yearTotal)}
                 </TableCell>
               </TableRow>
-            ))}
-          </TableBody>
-          <TableFooter>
-            <TableRow>
-              <TableCell>Total</TableCell>
-              {FIXED_COST_KINDS.map((kind) => (
-                <TableCell key={kind} className="text-right">
-                  {formatYen(yearTotalForKind(series, kind))}
-                </TableCell>
-              ))}
-              <TableCell className="text-right">{formatYen(yearTotal)}</TableCell>
-            </TableRow>
-          </TableFooter>
-        </Table>
+            </TableFooter>
+          </Table>
       </div>
     </div>
   );

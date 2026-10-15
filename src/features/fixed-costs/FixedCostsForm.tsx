@@ -103,7 +103,7 @@ export function FixedCostsForm() {
   };
 
   return (
-    <div className="space-y-6 w-full max-w-4xl mx-auto">
+    <div className="flex min-w-0 w-full flex-col gap-6">
       <div
         className={`fixed top-4 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground px-6 py-3 rounded-full shadow-lg font-bold text-sm transition-all duration-300 z-50 ${
           toastMessage
@@ -114,7 +114,7 @@ export function FixedCostsForm() {
         {toastMessage}
       </div>
 
-      <div className="p-6 bg-card text-card-foreground shadow-sm rounded-3xl border border-border space-y-4">
+      <div className="min-w-0 p-4 sm:p-6 bg-card text-card-foreground shadow-sm rounded-3xl border border-border space-y-4">
         <h1 className="text-xl font-extrabold flex items-center gap-2">
           Fixed costs
         </h1>
@@ -173,7 +173,7 @@ export function FixedCostsForm() {
 
       <FixedCostsTrend expenses={expenses} isLoading={isLoading} />
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid min-w-0 gap-4 md:grid-cols-2">
         {FIXED_COST_KINDS.map((kind) => {
           const Icon = KIND_ICONS[kind];
           const alreadyRegistered = isMonthRegistered(registered[kind], coverage);
@@ -191,7 +191,7 @@ export function FixedCostsForm() {
           return (
             <div
               key={kind}
-              className="p-6 bg-card text-card-foreground shadow-sm rounded-3xl border border-border space-y-4"
+              className="min-w-0 p-4 sm:p-6 bg-card text-card-foreground shadow-sm rounded-3xl border border-border space-y-4"
             >
               <div className="flex items-start justify-between gap-3">
                 <h2 className="text-lg font-extrabold flex items-center gap-2">
